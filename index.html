@@ -119,6 +119,8 @@ tr.me td{color:var(--vest);font-weight:700}
 .crew .st.hot{color:var(--bad);font-weight:700}
 .crew .ct{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
 .crew.empty{opacity:.55}
+.crew.toprow{grid-template-columns:44px 1fr auto 52px}
+.crew .ic svg{width:40px;height:26px;display:block}
 .crewh{font-size:12px;font-weight:700;color:var(--mute);margin:8px 0 4px}
 .bagsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
 .bagsum div{background:#fff;border-radius:12px;padding:8px;text-align:center;font-size:12px;color:var(--mute)}
@@ -143,7 +145,7 @@ tr.me td{color:var(--vest);font-weight:700}
 <div id="app">
   <div id="hud">
     <span class="chip brand">인생은타이밍호 <small>9.77톤</small></span>
-    <button class="chip btnchip" id="btnNick" type="button" style="background:rgba(255,255,255,.14)" title="닉네임 바꾸기">-</button>
+    <button class="chip btnchip" id="btnNick" type="button" style="background:rgba(255,255,255,.14)" title="내 닉네임">-</button>
     <button class="chip btnchip" id="btnCrew" type="button" style="background:rgba(255,255,255,.92);color:#0b3d52">승선 명단</button>
     <span class="chip">시각 <b id="hClock">06:00</b></span>
     <span class="chip" id="hPoint">오천항</span>
@@ -234,6 +236,9 @@ tr.me td{color:var(--vest);font-weight:700}
         <div class="eyebrow" id="crewEyebrow">승선 명단</div>
         <h2 id="crewTitle">누가 탔나</h2>
         <p class="spec" id="crewNet"></p>
+        <div class="crewh" style="margin-top:0">어종별 1위 · 가장 큰 고기</div>
+        <div id="crewTop"></div>
+        <div class="crewh">자리별 명단</div>
         <div class="crewlist" id="crewList"></div>
         <div id="crewElse"></div>
         <button class="btn" id="crewClose" type="button">닫기</button>
@@ -255,6 +260,8 @@ tr.me td{color:var(--vest);font-weight:700}
         <div class="eyebrow">15:00 · 오천항 입항</div>
         <h2 id="resTitle">오늘의 조과</h2>
         <div id="resMine"></div>
+        <h3>어종별 1위 (크기)</h3>
+        <div id="resTop"></div>
         <h3>선상 순위 (마릿수)</h3>
         <table id="resTable"></table>
         <p class="spec" id="resBest"></p>
@@ -407,6 +414,7 @@ function finish(){
     rows.map((r,i)=>'<tr class="'+(r.me?'me':'')+'"><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+(r.seat+1)+'번</td><td class="n">'+r.c+'</td></tr>').join('');
   let best=0; try{best=+localStorage.getItem('manseon_best')||0; if(G.bag.length>best) localStorage.setItem('manseon_best',G.bag.length);}catch(e){}
   $('resBest').textContent='잃어버린 채비 '+G.lost+'개 · 내 최고 기록 '+Math.max(best,G.bag.length)+'마리'+(G.bag.length>best&&best>0?' (신기록)':'');
+  $('resTop').innerHTML=topHTML();
   $('ovResult').hidden=false; say('선장','수고하셨습니다. 고기는 피 빼서 담아 드릴게요.');
 }
 $('btnAgain').onclick=()=>{ $('ovResult').hidden=true; newGame(); $('ovHarbor').hidden=false; $('btnVest').textContent='구명조끼 입기'; $('btnBoard').disabled=true; drawPreview(); say('선장','또 오셨네요. 구명조끼부터 입으세요.'); };
@@ -720,7 +728,7 @@ function npcs(dt){
   G.npcs.forEach(n=>{
     if(rs.has(n.seat)){ n.fight=false; n.bubT=0; return; }
     n.busy-=dt;
-    if(n.fight){ if(n.busy<=0){ n.fight=false; const s=pickMix(p.mix); n.count++; addLift(n.seat,s,0,3.8); n.bubble=SP[s].name+'!'; n.bubT=2.2; n.busy=rand(3,6);} return; }
+    if(n.fight){ if(n.busy<=0){ n.fight=false; const s=pickMix(p.mix); n.count++; { const d=SP[s], sz=Math.round(d.min+(d.max-d.min)*Math.pow(Math.random(),1.6)); n.best=n.best||{}; if(!(n.best[s]>=sz)) n.best[s]=sz; addLift(n.seat,s,sz,3.8); } n.bubble=SP[s].name+'!'; n.bubT=2.2; n.busy=rand(3,6);} return; }
     if(n.busy<=0 && Math.random()<dt*0.07*n.skill){
       if(p.rough>0.5 && Math.random()<0.15){ n.bubble='걸렸다…'; n.bubT=2; n.busy=8; return; }
       n.fight=true; n.busy=rand(4,7); n.bubble='왔다!'; n.bubT=1.4;
@@ -1684,9 +1692,11 @@ const NICK_A=['졸린','용감한','배고픈','신난','느긋한','반짝이�
 const NICK_B=['쭈꾸미','갑오징어','광어','참돔','방어','우럭','고등어','갈매기','문어','복어','놀래미','전갱이','해마','불가사리','꽃게'];
 const CAPS=['#ff7aa2','#5bc0eb','#9bc53d','#fde74c','#c3a6ff','#ff9f1c','#7bdff2','#f7aef8','#4cc9a0','#ff6b6b'];
 function rollNick(){ return NICK_A[Math.floor(Math.random()*NICK_A.length)]+' '+NICK_B[Math.floor(Math.random()*NICK_B.length)]+(10+Math.floor(Math.random()*90)); }
-const ME={n:'',c:CAPS[Math.floor(Math.random()*CAPS.length)],j:Date.now(),k:0,last:null};
-try{ ME.n=localStorage.getItem('manseon_nick')||''; }catch(e){}
-if(!ME.n){ ME.n=rollNick(); try{ localStorage.setItem('manseon_nick',ME.n); }catch(e){} }
+function hashStr(t){ let h=2166136261>>>0; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return h>>>0; }
+function nickFrom(key){ const h=hashStr('tbf:'+key); return {n:NICK_A[h%NICK_A.length]+' '+NICK_B[(h>>>5)%NICK_B.length]+(10+((h>>>10)%90)),c:CAPS[(h>>>17)%CAPS.length]}; }
+const ME={n:'',c:'',j:Date.now(),k:0,last:null};
+{ let key=''; try{ key=localStorage.getItem('tbf_key')||''; if(!key){ key=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('tbf_key',key); } }catch(e){ key=Math.random().toString(36).slice(2); }
+  const nk=nickFrom(key); ME.n=nk.n; ME.c=nk.c; }
 function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 let ROOM=null, lastPres='', REM=new Map(), seenK=new Map();
 function cleanNick(v){ return typeof v==='string'?v.replace(/[<>&"'`\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,16)||'손님':'손님'; }
@@ -1695,7 +1705,7 @@ function remotePeers(){
   const out=[]; ps.forEach(p=>{ if(p.sameTab||p.kind!=='viewer') return; const q=p.presence||{}; if(typeof q.n!=='string') return;
     out.push({peer:p.peer,n:cleanNick(q.n),c:/^#[0-9a-fA-F]{6}$/.test(q.c)?q.c:'#cccccc',j:+q.j||0,s:Number.isInteger(q.s)&&q.s>=0&&q.s<10?q.s:-1,sc:String(q.sc||''),pi:Number.isInteger(q.pi)?q.pi:-1,ph:String(q.ph||''),
       tr:q.tr&&typeof q.tr==='object'?{d:q.tr.d==='home'?'home':(Number.isInteger(q.tr.d)&&q.tr.d>=0&&q.tr.d<POINTS.length?q.tr.d:null),key:String(q.tr.key||'')}:null,
-      ck:+q.ck||0,cnt:Math.max(0,Math.min(999,+q.cnt||0)),last:q.last&&typeof q.last==='object'?q.last:null,guest:p.guest}); });
+      ck:+q.ck||0,cnt:Math.max(0,Math.min(999,+q.cnt||0)),best:cleanBest(q.best),last:q.last&&typeof q.last==='object'?q.last:null,guest:p.guest}); });
   return out;
 }
 const harborScene=()=>G.scene==='harbor'||G.scene==='result';
@@ -1737,10 +1747,25 @@ function mpTick(){
   renderCrew();
   // presence
   if(ROOM){ const pr={n:ME.n,c:ME.c,j:G.boardedAt||ME.j,s:G.seat,sc:G.scene,pi:G.pi,ph:G.ph,ck:Math.round(G.clock),cnt:G.bag.length,
-      tr:G.travel?{d:G.travel.dest,key:G.travel.key||''}:null,last:ME.last};
+      tr:G.travel?{d:G.travel.dest,key:G.travel.key||''}:null,last:ME.last,best:myBest()};
     const js=JSON.stringify(pr); if(js!==lastPres){ lastPres=js; ROOM.presence(pr).catch(()=>{}); } }
 }
-$('btnNick').onclick=()=>{ if(G.scene!=='harbor'){ say('선장','닉네임은 항구에서만 바꿀 수 있어요.'); return; } ME.n=rollNick(); try{ localStorage.setItem('manseon_nick',ME.n); }catch(e){} say('선장','이제부터 '+ME.n+'님이시네요.'); };
+$('btnNick').onclick=()=>{ say('선장',ME.n+'님, 다음에 들어오셔도 같은 이름으로 모실게요.'); return; ME.n=rollNick(); try{ localStorage.setItem('manseon_nick',ME.n); }catch(e){} say('선장','이제부터 '+ME.n+'님이시네요.'); };
+/* 어종별 1위 */
+function myBest(){ const b={}; G.bag.forEach(c=>{ if(!(b[c.sp]>=c.size)) b[c.sp]=c.size; }); return b; }
+function cleanBest(o){ const b={}; if(o&&typeof o==='object') SPKEYS.forEach(k=>{ const v=+o[k]; if(v>0&&v<200) b[k]=Math.round(v); }); return b; }
+function speciesTop(){
+  const cand=[{name:ME.n,c:ME.c,tag:'나',best:myBest()}];
+  remotePeers().forEach(p=>cand.push({name:p.n,c:p.c,tag:'접속',best:p.best||{}}));
+  const rs=remoteSeatsHere(); G.npcs.forEach(n=>{ if(!rs.has(n.seat)&&n.best) cand.push({name:n.name,c:n.cap,tag:'손님',best:n.best}); });
+  return SPKEYS.map(sp=>{ const list=cand.filter(c=>c.best[sp]>0).map(c=>({name:c.name,c:c.c,tag:c.tag,size:c.best[sp]})).sort((a,b)=>b.size-a.size||(a.tag==='나'?-1:1));
+    return {sp,top:list[0]||null,n:list.length,me:list.findIndex(x=>x.tag==='나')+1}; });
+}
+function topHTML(){
+  return '<div class="crewlist">'+speciesTop().map(r=>{ const t=r.top;
+    return '<div class="crew toprow'+(t?'':' empty')+'"><span class="ic">'+ICON[r.sp]+'</span><span class="nm"><b style="min-width:52px">'+SP[r.sp].name+'</b>'+(t?'<i class="dot" style="background:'+t.c+'"></i><span>'+esc(t.name)+'</span>'+(t.tag==='나'?'<b class="tag me">나</b>':t.tag==='접속'?'<b class="tag real">접속</b>':''):'<span>아직 없음</span>')+'</span>'
+      +'<span class="st">'+(r.me>1?'나 '+r.me+'위':r.n?r.n+'명 중':'')+'</span><span class="ct">'+(t?t.size+'cm':'')+'</span></div>'; }).join('')+'</div>';
+}
 /* 승선 명단 */
 const PHTXT={idle:'대기',drop:'채비 내리는 중',work:'고패질 중',approach:'입질!',bite:'입질!',fight:'파이팅 중',landed:'고기 올리는 중',snag:'채비 묶는 중',rigging:'채비 묶는 중'};
 function whereTxt(sc,pi,ph){ if(sc==='harbor') return '항구 대기'; if(sc==='result') return '입항 완료'; if(sc==='moving') return '이동 중'; if(sc==='return') return '입항 중'; if(sc==='wait') return '항구 앞';
@@ -1762,7 +1787,7 @@ function renderCrew(){
     if(harborScene()){ h+=crewRow(no,'#d3dde0','','','',' ',null); continue; }
     const n=G.npcs.find(n=>n.seat===i); if(!n){ h+=crewRow(no,'#d3dde0','','','',' ',null); continue; } h+=crewRow(no,n.cap,n.name,'손님','',n.fight?'파이팅 중':G.scene==='fishing'?'낚시 중':'앉아 있음',n.count);
   }
-  $('crewList').innerHTML=h;
+  $('crewList').innerHTML=h; $('crewTop').innerHTML=topHTML();
   const others=rp.filter(p=>!(REM.get(p.s)&&REM.get(p.s).peer===p.peer));
   $('crewElse').innerHTML=others.length?'<div class="crewh">다른 곳에 있는 사람 '+others.length+'명</div><div class="crewlist">'+others.map(p=>crewRow('·',p.c,p.n,'접속','real',p.sc==='fishing'&&POINTS[p.pi]?POINTS[p.pi].name+' · '+(PHTXT[p.ph]||'낚시 중'):whereTxt(p.sc,p.pi,p.ph),p.cnt)).join('')+'</div>':'';
 }
@@ -1795,7 +1820,9 @@ function startMqtt(){
 }
 (async()=>{
   let r=null; try{ if(window.claude&&window.claude.use) r=await window.claude.use('room'); }catch(e){}
-  if(r){ ROOM=r; NET.mode='claude'; NET.ok=true; try{ r.onPeers(()=>{},()=>{}); }catch(e){} return; }
+  if(r){ ROOM=r; NET.mode='claude'; NET.ok=true; try{ r.onPeers(()=>{},()=>{}); }catch(e){}
+    try{ const u=await window.claude.use('user'); const id=u?await u.id():null; if(id){ const nk=nickFrom('u:'+id); ME.n=nk.n; ME.c=nk.c; } }catch(e){}
+    return; }
   if(!window.claude) startMqtt();
 })();
 setInterval(()=>{ try{ mpTick(); }catch(e){ console.error(e); } },300);
