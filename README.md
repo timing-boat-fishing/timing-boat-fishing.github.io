@@ -6,3 +6,6 @@
 - 파일 하나(`index.html`)로 돌아가요. three.js는 cdnjs에서 불러와요.
 - 여러 명이 같이 타요. 이 사이트에 동시에 들어온 사람끼리 한 배에 타고, 위쪽 '승선 명단'에서 누가 탔는지 볼 수 있어요.
 - 같이 타기 연결은 무료 공개 MQTT 중계 서버(HiveMQ 공개 브로커)를 써요. 닉네임과 게임 상태만 오가고, 서버가 느리거나 멈추면 혼자 하는 모드로 계속 돼요.
+- 첫 화면에 누적 방문자 수(브라우저 기준 1회)와 누적 접속 수가 나와요. 집계는 무료 카운터 서비스 Abacus를 써요.
+  - 방문자 수만 보기: https://abacus.jasoncameron.dev/get/timing-boat-fishing/visitors
+  - 접속 수만 보기: https://abacus.jasoncameron.dev/get/timing-boat-fishing/views
